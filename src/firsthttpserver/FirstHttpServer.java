@@ -4,7 +4,11 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.util.Iterator;
@@ -25,10 +29,33 @@ public class FirstHttpServer {
         HttpServer server = HttpServer.create(i, 0);
         server.createContext("/welcome", new WelcomeHandler());
         server.createContext("/headers", new HeadersHandler());
+        server.createContext("/pages/", new PgaesHandler());
         server.setExecutor(null);
         server.start();
         System.out.println("Started the server, listening on: " + port);
         System.out.println("Bound to: " + ip);
+    }
+
+    static class PgaesHandler implements HttpHandler {
+
+        @Override
+        public void handle(HttpExchange he) throws IOException {
+            String contentFolder = "public/";
+
+            File file = new File(contentFolder + "index.html");
+            byte[] bytesToSend = new byte[(int) file.length()];
+            try {
+                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+                bis.read(bytesToSend, 0, bytesToSend.length);
+            } catch (IOException ie) {
+                ie.printStackTrace();
+            }
+            he.sendResponseHeaders(200, bytesToSend.length);
+            try (OutputStream os = he.getResponseBody()) {
+                os.write(bytesToSend, 0, bytesToSend.length);
+            }
+        }
+
     }
 
     static class HeadersHandler implements HttpHandler {
